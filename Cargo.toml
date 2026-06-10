@@ -1,4 +1,6 @@
 [package]
+description = "ternary-tuple - SuperInstance ecosystem crate"
+repository = "https://github.com/SuperInstance/ternary-tuple"
 name = "ternary-tuple"
 version = "0.1.0"
 edition = "2021"
