@@ -101,6 +101,22 @@ Tuple operations are the linear algebra primitives of **SuperInstance**. Agent s
 | Deza, Michel & Deza, Elena. *Encyclopedia of Distances*, 4th ed., Springer, 2016.
 | Stanley, Richard. *Enumerative Combinatorics*, Cambridge UP, 2011.
 
+
+
+## Complexity Summary
+
+| Operation | Time | Space |
+|---|---|---|
+| Hamming(a, b) | O(n) | O(1) |
+| Correlation(a, b) | O(n) | O(1) |
+| Manhattan(a, b) | O(n) | O(1) |
+| Orthogonality check | O(n) | O(1) |
+| Complement | O(n) | O(n) |
+| Rotation | O(n) | O(n) |
+| Subtuple extraction | O(len) | O(len) |
+
+All distance/similarity metrics are single-pass O(n) — optimal for comparing ternary vectors in high-dimensional spaces.
+
 ## License
 
 MIT
