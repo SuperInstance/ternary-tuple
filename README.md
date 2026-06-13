@@ -1,121 +1,142 @@
-# Ternary Tuple — Operations on Fixed-Length Ternary Vectors
+# ternary-tuple
 
-**Ternary Tuple** provides algebraic operations on tuples of ternary values {-1, 0, +1}: Hamming distance, correlation, Manhattan distance, orthogonality testing, complement, rotation, and subtuple extraction. These are the fundamental operations for comparing and manipulating ternary vectors.
+A `#![forbid(unsafe_code)]` library for **ternary tuples** — vectors over the alphabet **{-1, 0, +1}** — with distance metrics, correlation, orthogonality, complement, rotation, and subtuple extraction.
 
 ## Why It Matters
 
-Ternary vectors are the native data type for ternary neural networks, agent decision histories, and ternary fingerprints. Computing distances between them is essential for: nearest-neighbor search in ternary databases, similarity detection in agent populations, and error correction in ternary codes. The ternary alphabet {-1, 0, +1} gives richer distance metrics than binary: Hamming distance treats all differences equally, but Manhattan distance distinguishes "1 vs 0" (distance 1) from "1 vs -1" (distance 2). Correlation — the dot product normalized by length — directly measures agreement, making it ideal for agent similarity scoring.
+Ternary tuples are the atomic data structure of the ternary ecosystem. They represent compact signed signals: each element is a *trit* carrying negative, neutral, or positive sentiment. The metrics implemented here — Hamming distance, normalized correlation, Manhattan distance — are the building blocks for comparing ternary-encoded genomes in genetic algorithms, measuring agreement between ternary agents, and defining the geometry of the ternary state space **{-1, 0, +1}ⁿ**.
+
+The space has **3ⁿ** elements for dimension *n*, offering richer structure than binary Hamming space **{0,1}ⁿ** (2ⁿ elements) while remaining finitely enumerable.
 
 ## How It Works
 
-### Hamming Distance
+### Vector Space Structure
 
-Number of positions where tuples differ:
-
-```
-d_H(a, b) = Σ [aᵢ ≠ bᵢ]
-```
-
-O(n) for n elements. Range: [0, n].
-
-### Correlation
-
-Normalized dot product:
+Ternary tuples live in **ℤ₃ⁿ** (the *n*-dimensional module over the ring ℤ₃). Each tuple is a vector:
 
 ```
-corr(a, b) = (Σ aᵢ × bᵢ) / n
+t = (t₀, t₁, ..., t_{n-1}),  t_i ∈ {-1, 0, +1}
 ```
 
-Range: [-1, +1]. Correlation = 1 means identical; -1 means perfectly anti-correlated; 0 means orthogonal. O(n).
+### Distance Metrics
 
-### Manhattan Distance
-
-Sum of absolute differences:
+**Hamming distance** — count of differing positions:
 
 ```
-d_M(a, b) = Σ |aᵢ - bᵢ|
+d_H(a, b) = |{ i : a_i ≠ b_i }|
 ```
 
-Range: [0, 2n]. Values: |1-(-1)| = 2, |1-0| = 1, |0-(-1)| = 1. O(n).
+- **Complexity:** O(n)
+- **Range:** [0, n]
+
+**Manhattan distance** — L₁ norm of the difference:
+
+```
+d_M(a, b) = Σᵢ |a_i − b_i|
+```
+
+- **Complexity:** O(n)
+- **Range:** [0, 2n] (max when one tuple is all +1 and the other all −1)
+
+**Correlation** — normalized dot product (Pearson-like):
+
+```
+ρ(a, b) = (a · b) / n = (1/n) Σᵢ a_i · b_i
+```
+
+- **Complexity:** O(n)
+- **Range:** [−1, +1]
+- ρ = +1: identical tuples
+- ρ = 0: orthogonal (uncorrelated)
+- ρ = −1: anti-correlated
 
 ### Orthogonality
 
-Two tuples are orthogonal if their dot product is zero:
+Two tuples are orthogonal when their dot product vanishes:
 
 ```
-orthogonal(a, b) ⟺ Σ aᵢ × bᵢ = 0
+a ⊥ b  ⟺  Σᵢ a_i · b_i = 0
 ```
 
-O(n). Orthogonal ternary vectors form the basis for ternary error-correcting codes.
+In ℤ₃ⁿ, the maximum number of pairwise orthogonal vectors of length *n* is *n* (matching the linear-algebraic dimension).
 
 ### Complement
 
-Negate each element: `complement(a)ᵢ = -aᵢ`. O(n). The complement of (+1, 0, -1) is (-1, 0, +1).
+The complement negates every element:
+
+```
+¬t = (−t₀, −t₁, ..., −t_{n−1})
+```
+
+Note: `complement(complement(t)) = t`. The complement corresponds to the additive inverse in ℤ₃ⁿ.
 
 ### Rotation
 
-Circular rotation by n positions. O(n). A right rotation by 1 of (1, -1, 0) gives (0, 1, -1).
+Cyclic rotation by *n* positions, with proper modular wrapping for negative shifts:
+
+```
+rotate(t, n)[i] = t[(i − n) mod len]
+```
+
+- **Complexity:** O(n)
+- Handles negative rotation values correctly.
 
 ### Subtuple
 
-Extract a contiguous slice. O(len) for the extracted length. Bounds-checked.
+Contiguous slice extraction with bounds checking:
+
+```
+subtuple(t, start, len) = (t_start, ..., t_{start+len−1})
+```
 
 ## Quick Start
 
 ```rust
-use ternary_tuple::{TernaryTuple, hamming, correlation, manhattan, are_orthogonal};
+use ternary_tuple::*;
 
-let a = TernaryTuple::new(vec![1, 0, -1, 1]);
-let b = TernaryTuple::new(vec![1, 1, -1, 0]);
+let a = TernaryTuple::new(vec![1, 0, -1, 1, -1]);
+let b = TernaryTuple::new(vec![-1, 0, 1, 1, -1]);
 
-println!("Hamming: {}", hamming(&a, &b));         // 2
-println!("Correlation: {:.2}", correlation(&a, &b)); // 0.25
-println!("Manhattan: {}", manhattan(&a, &b));      // 2
-println!("Orthogonal: {}", are_orthogonal(&a, &b)); // false
-```
+assert_eq!(hamming(&a, &b), 2);           // positions 0 and 2 differ
+assert_eq!(manhattan(&a, &b), 4);         // |1−(−1)| + |−1−1| = 4
+assert!((correlation(&a, &b) - 0.2).abs() < 1e-9);  // dot=1, /5=0.2
 
-```bash
-cargo add ternary-tuple
+let c = complement(&a);
+assert_eq!(c.values, vec![-1, 0, 1, -1, 1]);
+
+let r = rotate(&a, 1);
+assert_eq!(r.values, vec![-1, 1, 0, -1, 1]);
+
+assert!(are_orthogonal(
+    &TernaryTuple::new(vec![1, -1, 0]),
+    &TernaryTuple::new(vec![1, 1, 0]),
+));
 ```
 
 ## API
 
-| Type / Function | Description |
-|---|---|
-| `TernaryTuple` | Vec<i8> with values in {-1, 0, +1} |
-| `hamming(a, b)` | Count of differing positions (O(n)) |
-| `correlation(a, b)` | Normalized dot product [-1, +1] (O(n)) |
-| `manhattan(a, b)` | Sum of absolute differences (O(n)) |
-| `are_orthogonal(a, b)` | True if dot product = 0 |
-| `complement(t)` | Negate all elements |
-| `rotate(t, n)` | Circular rotation |
-| `subtuple(t, start, len)` | Contiguous slice |
+| Function | Signature | Returns |
+|---|---|---|
+| `TernaryTuple::new` | `Vec<i8> → TernaryTuple` | Validated tuple (panics on invalid) |
+| `hamming` | `(&TernaryTuple, &TernaryTuple) → usize` | Count of differing positions |
+| `correlation` | `(&TernaryTuple, &TernaryTuple) → f64` | Normalized dot product ∈ [−1, +1] |
+| `manhattan` | `(&TernaryTuple, &TernaryTuple) → usize` | L₁ distance |
+| `are_orthogonal` | `(&TernaryTuple, &TernaryTuple) → bool` | True if dot product = 0 |
+| `complement` | `&TernaryTuple → TernaryTuple` | Negated tuple |
+| `rotate` | `(&TernaryTuple, isize) → TernaryTuple` | Cyclic shift |
+| `subtuple` | `(&TernaryTuple, usize, usize) → TernaryTuple` | Contiguous slice |
 
 ## Architecture Notes
 
-Tuple operations are the linear algebra primitives of **SuperInstance**. Agent similarity scoring uses correlation; agent diversity uses Hamming distance. The γ + η = C conservation manifests in orthogonality: orthogonal ternary vectors represent independent γ and η contributions that sum to the total capacity. See [Architecture](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md).
+The correlation metric connects this crate to the **γ + η = C** conservation law of the ternary ecosystem. When ternary tuples encode agent votes (γ = +1 votes, η = −1 votes), the correlation between two tuples equals the agreement rate scaled by active participation. Two tuples with correlation ρ = 0 represent populations whose γ + η distributions are independent — the neutral state absorbs the difference.
+
+The ℤ₃ vector space is also the natural setting for the ternary ballot operations in `warp-ternary-vote` and the tape alphabet of `ternary-turing`.
 
 ## References
 
-| MacWilliams, Florence & Sloane, Neil. *The Theory of Error-Correcting Codes*, North-Holland, 1977.
-| Deza, Michel & Deza, Elena. *Encyclopedia of Distances*, 4th ed., Springer, 2016.
-| Stanley, Richard. *Enumerative Combinatorics*, Cambridge UP, 2011.
-
-
-
-## Complexity Summary
-
-| Operation | Time | Space |
-|---|---|---|
-| Hamming(a, b) | O(n) | O(1) |
-| Correlation(a, b) | O(n) | O(1) |
-| Manhattan(a, b) | O(n) | O(1) |
-| Orthogonality check | O(n) | O(1) |
-| Complement | O(n) | O(n) |
-| Rotation | O(n) | O(n) |
-| Subtuple extraction | O(len) | O(len) |
-
-All distance/similarity metrics are single-pass O(n) — optimal for comparing ternary vectors in high-dimensional spaces.
+- Conway, J. H. & Sloane, N. J. A. (1988). *Sphere Packings, Lattices and Groups.* Springer. — §7: Ternary and Lee-type codes.
+- Hamming, R. W. (1950). *"Error Detecting and Error Correcting Codes."* Bell System Technical Journal.
+- Forney, G. D. (1988). *"Coset Codes—Part II: Binary Lattices and Related Codes."* IEEE Trans. Inf. Theory.
 
 ## License
 
