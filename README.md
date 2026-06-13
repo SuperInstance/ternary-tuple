@@ -1,76 +1,105 @@
-# ternary-tuple
+# Ternary Tuple — Operations on Fixed-Length Ternary Vectors
 
-**Fixed-length ternary vectors. Hamming distance, correlation, and algebraic operations.**
+**Ternary Tuple** provides algebraic operations on tuples of ternary values {-1, 0, +1}: Hamming distance, correlation, Manhattan distance, orthogonality testing, complement, rotation, and subtuple extraction. These are the fundamental operations for comparing and manipulating ternary vectors.
 
-A ternary tuple is a fixed-length vector of values from {-1, 0, +1}. It's the simplest compound data structure in the ternary ecosystem — a row in a table, a word in a ternary vocabulary, a chromosome in a ternary genome.
+## Why It Matters
 
-This crate provides distance metrics, similarity measures, and algebraic operations on ternary tuples: Hamming distance, correlation, elementwise addition (mod 3), scalar multiplication, dot product, and set operations.
+Ternary vectors are the native data type for ternary neural networks, agent decision histories, and ternary fingerprints. Computing distances between them is essential for: nearest-neighbor search in ternary databases, similarity detection in agent populations, and error correction in ternary codes. The ternary alphabet {-1, 0, +1} gives richer distance metrics than binary: Hamming distance treats all differences equally, but Manhattan distance distinguishes "1 vs 0" (distance 1) from "1 vs -1" (distance 2). Correlation — the dot product normalized by length — directly measures agreement, making it ideal for agent similarity scoring.
 
-## What's Inside
+## How It Works
 
-- **`TernaryTuple`** — validated vector of {-1, 0, +1} values
-- **`hamming(a, b)`** — number of positions that differ
-- **`correlation(a, b)`** — Pearson correlation between two tuples
-- **`elementwise_add(a, b)`** — balanced ternary addition per element (wraps mod 3)
-- **`scalar_mul(tuple, n)`** — multiply each element by an integer, wrap to ternary
-- **`dot(a, b)`** — inner product (sum of elementwise products)
-- **`weight(tuple)`** — number of non-zero elements (the "information content")
-- **`majority(tuples)`** — elementwise majority vote across multiple tuples
-- **`permute(tuple, order)`** — rearrange elements by a permutation
+### Hamming Distance
 
-## Quick Example
+Number of positions where tuples differ:
+
+```
+d_H(a, b) = Σ [aᵢ ≠ bᵢ]
+```
+
+O(n) for n elements. Range: [0, n].
+
+### Correlation
+
+Normalized dot product:
+
+```
+corr(a, b) = (Σ aᵢ × bᵢ) / n
+```
+
+Range: [-1, +1]. Correlation = 1 means identical; -1 means perfectly anti-correlated; 0 means orthogonal. O(n).
+
+### Manhattan Distance
+
+Sum of absolute differences:
+
+```
+d_M(a, b) = Σ |aᵢ - bᵢ|
+```
+
+Range: [0, 2n]. Values: |1-(-1)| = 2, |1-0| = 1, |0-(-1)| = 1. O(n).
+
+### Orthogonality
+
+Two tuples are orthogonal if their dot product is zero:
+
+```
+orthogonal(a, b) ⟺ Σ aᵢ × bᵢ = 0
+```
+
+O(n). Orthogonal ternary vectors form the basis for ternary error-correcting codes.
+
+### Complement
+
+Negate each element: `complement(a)ᵢ = -aᵢ`. O(n). The complement of (+1, 0, -1) is (-1, 0, +1).
+
+### Rotation
+
+Circular rotation by n positions. O(n). A right rotation by 1 of (1, -1, 0) gives (0, 1, -1).
+
+### Subtuple
+
+Extract a contiguous slice. O(len) for the extracted length. Bounds-checked.
+
+## Quick Start
 
 ```rust
-use ternary_tuple::*;
+use ternary_tuple::{TernaryTuple, hamming, correlation, manhattan, are_orthogonal};
 
 let a = TernaryTuple::new(vec![1, 0, -1, 1]);
 let b = TernaryTuple::new(vec![1, 1, -1, 0]);
 
-let h = hamming(&a, &b);
-assert_eq!(h, 2); // positions 1 and 3 differ
-
-let c = correlation(&a, &b);
-// Pearson correlation between the two tuples
-
-let sum = elementwise_add(&a, &b);
-// [1+1=-1, 0+1=1, -1+-1=1, 1+0=1] (mod 3 wrapping)
-
-let d = dot(&a, &b);
-// 1*1 + 0*1 + (-1)*(-1) + 1*0 = 2
-
-let w = weight(&a);
-assert_eq!(w, 3); // 3 non-zero elements
-
-// Majority vote across three tuples
-let c = TernaryTuple::new(vec![-1, 0, 1, -1]);
-let maj = majority(&[&a, &b, &c]);
+println!("Hamming: {}", hamming(&a, &b));         // 2
+println!("Correlation: {:.2}", correlation(&a, &b)); // 0.25
+println!("Manhattan: {}", manhattan(&a, &b));      // 2
+println!("Orthogonal: {}", are_orthogonal(&a, &b)); // false
 ```
-
-## The Deeper Truth
-
-**Ternary tuples are the natural data structure for Z₃ vector spaces.** Elementwise addition (mod 3) makes the set of all n-length ternary tuples into a vector space over Z₃. This isn't an analogy — it's literally true. The dimension is n, there are 3^n possible tuples, and all the linear algebra operations (addition, scalar multiplication, dot product) are well-defined and exact (no floating-point).
-
-The Hamming distance is the L₀ norm — how many positions changed. The weight is the L₀ "norm" of a single tuple — how many positions carry information. Together, they measure the *structural difference* between tuples, which is more informative than Euclidean distance for discrete data.
-
-**Use cases:**
-- **Error-correcting codes** — ternary codes with Hamming distance guarantees
-- **Genetic algorithms** — ternary chromosomes with crossover and mutation
-- **Database records** — compact ternary-valued rows
-- **Feature vectors** — ternary features for ML (negative/neutral/positive sentiment per dimension)
-- **Cryptography** — Z₃ linear algebra for ternary ciphers
-
-## See Also
-
-- **ternary-matrix** — matrix operations over Z₃ (tuples are rows)
-- **ternary-mutual-info** — information-theoretic distance between tuple-valued signals
-- **ternary-diff** — diff operations on tuples (and sequences of tuples)
-- **ternary-permutation** — permutation operations on tuple positions
-
-## Install
 
 ```bash
 cargo add ternary-tuple
 ```
+
+## API
+
+| Type / Function | Description |
+|---|---|
+| `TernaryTuple` | Vec<i8> with values in {-1, 0, +1} |
+| `hamming(a, b)` | Count of differing positions (O(n)) |
+| `correlation(a, b)` | Normalized dot product [-1, +1] (O(n)) |
+| `manhattan(a, b)` | Sum of absolute differences (O(n)) |
+| `are_orthogonal(a, b)` | True if dot product = 0 |
+| `complement(t)` | Negate all elements |
+| `rotate(t, n)` | Circular rotation |
+| `subtuple(t, start, len)` | Contiguous slice |
+
+## Architecture Notes
+
+Tuple operations are the linear algebra primitives of **SuperInstance**. Agent similarity scoring uses correlation; agent diversity uses Hamming distance. The γ + η = C conservation manifests in orthogonality: orthogonal ternary vectors represent independent γ and η contributions that sum to the total capacity. See [Architecture](https://github.com/SuperInstance/SuperInstance/blob/main/ARCHITECTURE.md).
+
+## References
+
+| MacWilliams, Florence & Sloane, Neil. *The Theory of Error-Correcting Codes*, North-Holland, 1977.
+| Deza, Michel & Deza, Elena. *Encyclopedia of Distances*, 4th ed., Springer, 2016.
+| Stanley, Richard. *Enumerative Combinatorics*, Cambridge UP, 2011.
 
 ## License
 
