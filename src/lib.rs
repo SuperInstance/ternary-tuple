@@ -8,7 +8,7 @@ pub struct TernaryTuple {
 impl TernaryTuple {
     pub fn new(values: Vec<i8>) -> Self {
         for &v in &values {
-            assert!(v >= -1 && v <= 1, "values must be in {{-1, 0, 1}}");
+            assert!((-1..=1).contains(&v), "values must be in {{-1, 0, 1}}");
         }
         Self { values }
     }
@@ -24,7 +24,11 @@ impl TernaryTuple {
 
 pub fn hamming(a: &TernaryTuple, b: &TernaryTuple) -> usize {
     assert_eq!(a.len(), b.len(), "tuples must be same length");
-    a.values.iter().zip(&b.values).filter(|(x, y)| x != y).count()
+    a.values
+        .iter()
+        .zip(&b.values)
+        .filter(|(x, y)| x != y)
+        .count()
 }
 
 pub fn correlation(a: &TernaryTuple, b: &TernaryTuple) -> f64 {
@@ -32,18 +36,32 @@ pub fn correlation(a: &TernaryTuple, b: &TernaryTuple) -> f64 {
     if a.is_empty() {
         return 0.0;
     }
-    let dot: i64 = a.values.iter().zip(&b.values).map(|(x, y)| (x * y) as i64).sum();
+    let dot: i64 = a
+        .values
+        .iter()
+        .zip(&b.values)
+        .map(|(x, y)| (x * y) as i64)
+        .sum();
     dot as f64 / a.len() as f64
 }
 
 pub fn manhattan(a: &TernaryTuple, b: &TernaryTuple) -> usize {
     assert_eq!(a.len(), b.len(), "tuples must be same length");
-    a.values.iter().zip(&b.values).map(|(x, y)| (x - y).unsigned_abs() as usize).sum()
+    a.values
+        .iter()
+        .zip(&b.values)
+        .map(|(x, y)| (x - y).unsigned_abs() as usize)
+        .sum()
 }
 
 pub fn are_orthogonal(a: &TernaryTuple, b: &TernaryTuple) -> bool {
     assert_eq!(a.len(), b.len(), "tuples must be same length");
-    let dot: i64 = a.values.iter().zip(&b.values).map(|(x, y)| (x * y) as i64).sum();
+    let dot: i64 = a
+        .values
+        .iter()
+        .zip(&b.values)
+        .map(|(x, y)| (x * y) as i64)
+        .sum();
     dot == 0
 }
 
@@ -66,7 +84,9 @@ pub fn rotate(t: &TernaryTuple, n: isize) -> TernaryTuple {
 
 pub fn subtuple(t: &TernaryTuple, start: usize, len: usize) -> TernaryTuple {
     assert!(start + len <= t.len(), "subtuple out of bounds");
-    TernaryTuple { values: t.values[start..start + len].to_vec() }
+    TernaryTuple {
+        values: t.values[start..start + len].to_vec(),
+    }
 }
 
 #[cfg(test)]
