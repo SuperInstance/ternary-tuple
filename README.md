@@ -99,7 +99,7 @@ let b = TernaryTuple::new(vec![-1, 0, 1, 1, -1]);
 
 assert_eq!(hamming(&a, &b), 2);           // positions 0 and 2 differ
 assert_eq!(manhattan(&a, &b), 4);         // |1−(−1)| + |−1−1| = 4
-assert!((correlation(&a, &b) - 0.2).abs() < 1e-9);  // dot=1, /5=0.2
+assert!((correlation(&a, &b) - 0.0).abs() < 1e-9);  // dot=0, /5=0.0 (orthogonal)
 
 let c = complement(&a);
 assert_eq!(c.values, vec![-1, 0, 1, -1, 1]);
